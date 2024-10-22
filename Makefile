@@ -1,8 +1,11 @@
+BASE_URL = "https://wagslane.dev"
+
+
 build: clean
-	@go build -o ./bin/crawler ./main.go
+	@go build -o ./bin/crawler ./*.go
 
 run: build
-	@./bin/crawler
+	@./bin/crawler $(BASE_URL)
 
 clean:
 	@go clean -cache
