@@ -5,7 +5,9 @@ run: build
 	@./bin/crawler
 
 clean:
+	@go clean -cache
+	@go clean -testcache
 	@rm -rf bin/
 
-test:
+test: clean
 	@go test -v ./...

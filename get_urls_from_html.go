@@ -9,51 +9,41 @@ import (
 )
 
 func getURLsFromHTML(htmlBody, rawBaseURL string) ([]string, error) {
-    var links []string
+    baseURL, err := url.Parse(rawBaseURL)
+    if err != nil {
+        return nil, fmt.Errorf("could not parse URL: %v", err.Error())
+    }
+
     htmlReader := strings.NewReader(htmlBody)
-    node, err := html.Parse(htmlReader)
+    doc, err := html.Parse(htmlReader)
     if err != nil {
-        return links, fmt.Errorf("parsing htmlbody: %v", err.Error())
+        return nil, fmt.Errorf("could not parse HTML: %v", err.Error())
     }
 
-    linkMap := make(map[string]string)
-    linkMap = traverseNode(linkMap, node, 0)
+    var urls []string
+    var traverseNodes func(*html.Node)
 
-    for _, v := range linkMap {
-        converted, err := convertToAbsPath(v)
-        if err != nil {
-            return links, fmt.Errorf("converting relative to absolute: %v", err.Error())
+    traverseNodes = func(node *html.Node) {
+        if node.Type == html.ElementNode && node.Data == "a" {
+            for _, anchor := range node.Attr {
+                if anchor.Key == "href" {
+                    href, err := url.Parse(anchor.Val)
+                    if err != nil {
+                        continue
+                    }
+
+                    resolvedURL := baseURL.ResolveReference(href)
+                    urls = append(urls, resolvedURL.String())
+                }
+            }
         }
 
-        links = append(links, converted)
-    }
-
-
-    return links, nil
-
-}
-
-func convertToAbsPath(rawURL string) (string, error) {
-    parsedURL, err := url.Parse(rawURL)
-    if err != nil {
-        return "", fmt.Errorf("couldn't parse URL: %w", err)
-    }
-
-    fmt.Println(parsedURL)
-    return parsedURL.Host, nil
-}
-
-func traverseNode(linkMap map[string]string,n *html.Node, depth int) map[string]string {
-    // indent := strings.Repeat("  ", depth)
-
-    switch n.Type {
-    case html.ElementNode:
-        for _, attr := range n.Attr {
-            linkMap[attr.Val] = attr.Val
+        for child := node.FirstChild; child != nil; child = child.NextSibling {
+            traverseNodes(child)
         }
     }
-    for c := n.FirstChild; c != nil; c = c.NextSibling {
-        traverseNode(linkMap, c, depth+1)
-    }
-    return linkMap
+    traverseNodes(doc)
+
+    return urls, nil
+
 }
