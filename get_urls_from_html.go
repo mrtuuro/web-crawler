@@ -8,11 +8,7 @@ import (
     "golang.org/x/net/html"
 )
 
-func getURLsFromHTML(htmlBody, rawBaseURL string) ([]string, error) {
-    baseURL, err := url.Parse(rawBaseURL)
-    if err != nil {
-        return nil, fmt.Errorf("could not parse URL: %v", err.Error())
-    }
+func getURLsFromHTML(htmlBody string, baseURL *url.URL) ([]string, error) {
 
     htmlReader := strings.NewReader(htmlBody)
     doc, err := html.Parse(htmlReader)
